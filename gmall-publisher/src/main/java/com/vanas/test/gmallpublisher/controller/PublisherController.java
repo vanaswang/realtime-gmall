@@ -1,11 +1,15 @@
 package com.vanas.test.gmallpublisher.controller;
 
 import com.alibaba.fastjson.JSON;
+import com.vanas.test.gmallpublisher.bean.Option;
+import com.vanas.test.gmallpublisher.bean.SaleInfo;
+import com.vanas.test.gmallpublisher.bean.Stat;
 import com.vanas.test.gmallpublisher.service.PublisherService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.io.IOException;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -88,6 +92,59 @@ public class PublisherController {
      */
     private String getYesterday(String date) {
         return LocalDate.parse(date).plusDays(-1).toString();
+    }
+
+
+    @GetMapping("/sale_detail")
+    public String saleDetail(String date, int startpage, int size, String keyword) throws IOException {
+        Map<String, Object> genderAgg = service.getSaleDetailAndAgg(date, keyword, startpage, size, "user_gender", 2);
+        Map<String, Object> aggAgg = service.getSaleDetailAndAgg(date, keyword, startpage, size, "user_age", 100);
+
+        //1.最终返回结果
+        SaleInfo saleInfo = new SaleInfo();
+        //2.设置总数
+        saleInfo.setTotal((long) genderAgg.get("total"));
+        //3.设置详情
+        saleInfo.setDetail((List<Map>) genderAgg.get("detail"));
+        //4.添加饼图
+        //4.1性别的饼图
+        Stat genderStat = new Stat();
+        //4.1.1给性别的饼图设置title
+        genderStat.setTitle("用户性别占比");
+        //4.1.2向性别饼图插入选项
+        Map<String, Long> agg1 = (Map<String, Long>) genderAgg.get("agg");
+
+        for (String key : agg1.keySet()) {
+            Option opt = new Option();
+            opt.setName(key);
+            opt.setValue(agg1.get(key));
+            genderStat.addOption(opt);
+        }
+        saleInfo.addStat(genderStat);
+
+        //4.2年龄段的饼图
+        Stat ageStat = new Stat();
+        ageStat.setTitle("用户年龄占比");
+        ageStat.addOption(new Option("20岁以下", 0L));
+        ageStat.addOption(new Option("20岁到30岁", 0L));
+        ageStat.addOption(new Option("30岁以上", 0L));
+
+        Map<String, Long> agg2 = (Map<String, Long>) aggAgg.get("agg");
+        for (Map.Entry<String, Long> entry : agg2.entrySet()) {
+            int age = Integer.parseInt(entry.getKey());
+            if (age < 20) {
+                Option opt = ageStat.getOptions().get(0);
+                opt.setValue(opt.getValue() + entry.getValue());
+            } else if (age < 30) {
+                Option opt = ageStat.getOptions().get(1);
+                opt.setValue(opt.getValue() + entry.getValue());
+            } else {
+                Option opt = ageStat.getOptions().get(2);
+                opt.setValue(opt.getValue() + entry.getValue());
+            }
+        }
+        saleInfo.addStat(ageStat);
+        return JSON.toJSONString(saleInfo);
     }
 }
 /*

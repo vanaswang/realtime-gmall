@@ -111,7 +111,7 @@ object SaleApp extends BaseApp {
                             cacheOderInfoToRedis(orderInfo, client)
                             // 2. 把orderInfo和orderDetail的数据合并到一起
                             val saleDetail = SaleDetail().mergeOrderInfo(orderInfo).mergeOrderDetail(orderDetail)
-                            // 3. 去OrderDetail对应的缓存中, 找到这个orderId都应的所有orderDetail信息
+                            // 3. 去OrderDetail对应的缓存中, 找到这个orderId对应的所有orderDetail信息
                             /*
                             orderDetail缓存
                             key                                                     value(string)
